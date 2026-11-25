@@ -31,7 +31,8 @@
     const saved = JSON.parse(store.get(SAVE));
     if (saved && typeof saved.balance === 'number') S = { ...fresh(), ...saved };
   } catch { /* unlesbarer Stand: neu anfangen */ }
-  const save = () => store.set(SAVE, JSON.stringify(S));
+  let mp = null; // gemeinsamer Tisch (mp.js); solange gesetzt, bleibt der Solo-Stand unberührt
+  const save = () => { if (mp) mp.changed(); else store.set(SAVE, JSON.stringify(S)); };
   const bullets = () => Math.min(S.visits, L.CHAMBERS - 1);
 
   /* ---------- Ton ---------- */
@@ -162,10 +163,16 @@
   function animate(ms, frame) {
     return new Promise((done) => {
       const t0 = performance.now();
+      // Im Hintergrund steht requestAnimationFrame still: dann gleich ans Ende.
+      const skip = () => { if (document.hidden) end(); };
+      const end = () => { document.removeEventListener('visibilitychange', skip); if (over) return; over = true; frame(1); done(); };
+      let over = false;
+      document.addEventListener('visibilitychange', skip);
+      if (document.hidden) { end(); return; }
       const tick = (t) => {
+        if (over) return;
         const u = Math.min(1, Math.max(0, (t - t0) / ms));
-        frame(u);
-        if (u < 1) requestAnimationFrame(tick); else done();
+        if (u < 1) { frame(u); requestAnimationFrame(tick); } else end();
       };
       requestAnimationFrame(tick);
     });
@@ -281,8 +288,9 @@
     });
     const has = Object.keys(S.bets).length > 0;
     const lastSum = L.stake(S.last);
-    const dis = { undo: !has, clear: !has, spin: !has, rebet: has || !lastSum || lastSum > S.balance, cashout: false };
+    const dis = { undo: !has, clear: !has, spin: !has, rebet: has || !lastSum || lastSum > S.balance, cashout: false, friends: false };
     for (const [k, v] of Object.entries(dis)) document.querySelector(`[data-act=${k}]`).disabled = busy || v;
+    if (mp) mp.decorate(cells);
 
     $('history').replaceChildren(...S.history.slice(shown ? 1 : 0).map((n) => {
       const li = document.createElement('li'); li.className = L.color(n); li.textContent = n; return li;
@@ -357,17 +365,8 @@
     S.peak = Math.max(S.peak, S.balance);
     save(); render();
 
-    say('Nichts geht mehr.');
-    if (portrait.matches) scrollTo({ top: 0, behavior: calm.matches ? 'auto' : 'smooth' });
-    await spinWheel(n);
-
-    const name = { red: 'Rot', black: 'Schwarz', green: 'Grün' }[L.color(n)];
-    const net = won - staked;
-    $('layout').classList.add('called');
-    for (const [key, el] of cells) if (key === 'n' + n || (bets[key] && L.bet(key).hit(n))) el.classList.add('hit');
-    const head = n === 0 ? 'Zero' : `${n}, ${name}`;
-    say(net > 0 ? `${head}. Du gewinnst ${fmt(net)} Mark.` : net < 0 ? `${head}. Du verlierst ${fmt(-net)} Mark.` : `${head}. Du bekommst deinen Einsatz zurück.`);
-    if (net > 0) sfx.win();
+    await callSpin(n);
+    callResult(n, bets, staked, won);
     shown = null;
     if (S.balance > 0) { busy = false; render(); return; }
     render();
@@ -375,6 +374,20 @@
     say('Du hast nichts mehr.');
     await wait(1800);
     enterGun();
+  }
+  function callSpin(n) {
+    say('Nichts geht mehr.');
+    if (portrait.matches) scrollTo({ top: 0, behavior: calm.matches ? 'auto' : 'smooth' });
+    return spinWheel(n);
+  }
+  function callResult(n, bets, staked, won) {
+    const name = { red: 'Rot', black: 'Schwarz', green: 'Grün' }[L.color(n)];
+    const net = won - staked;
+    $('layout').classList.add('called');
+    for (const [key, el] of cells) if (key === 'n' + n || (bets[key] && L.bet(key).hit(n))) el.classList.add('hit');
+    const head = n === 0 ? 'Zero' : `${n}, ${name}`;
+    say(!staked ? `${head}.` : net > 0 ? `${head}. Du gewinnst ${fmt(net)} Mark.` : net < 0 ? `${head}. Du verlierst ${fmt(-net)} Mark.` : `${head}. Du bekommst deinen Einsatz zurück.`);
+    if (net > 0) sfx.win();
   }
 
   /* ---------- Revolver ---------- */
@@ -441,8 +454,12 @@
     S.chambers = L.load(bullets());
     S.fired = 0;
     save();
+    await cylAnim();
+    gunScreen();
+    $('gunGo').focus({ preventScroll: true });
+  }
+  async function cylAnim() {
     gunView('Die Trommel dreht', '', null, null);
-    $('gunText').textContent = '';
     cylMode = 'hidden'; paintChambers();
     const from = mod(cylA, 360);
     let notch = -1;
@@ -453,8 +470,6 @@
       if (k !== notch) { notch = k; sfx.ratchet(); }
     });
     setCyl(0);
-    gunScreen();
-    $('gunGo').focus({ preventScroll: true });
   }
 
   async function pull() {
@@ -466,6 +481,12 @@
     if (dead) S.phase = 'dead'; else { S.fired = n; S.pulls++; }
     save();
 
+    await pullAnim(n, Math.random() < .5 ? 3 : 2, dead);
+    if (dead) { showEnd(true); return; }
+    gunScreen();
+    $('gunGo').focus({ preventScroll: true });
+  }
+  async function pullAnim(n, beats, dead) {
     gunView('', '', null, null);
     body.classList.add('tense');
     const hammer = $('hammer');
@@ -474,15 +495,11 @@
     const from = (n - 1) * 60;
     await animate(calm.matches ? 200 : 700, (u) => setCyl(from + 60 * u * u * (3 - 2 * u)));
     sfx.ratchet();
-    for (let i = 0; i < 2; i++) { sfx.heart(); await wait(850); }
-    if (Math.random() < .5) { sfx.heart(); await wait(850); }
+    for (let i = 0; i < beats; i++) { sfx.heart(); await wait(850); }
     hammer.setAttribute('class', 'strike');
-    if (dead) { sfx.bang(); body.classList.remove('tense'); showEnd(true); hammer.setAttribute('class', ''); return; }
-    sfx.dry();
+    if (dead) sfx.bang(); else sfx.dry();
     body.classList.remove('tense');
-    gunScreen();
     setTimeout(() => hammer.setAttribute('class', ''), 400);
-    $('gunGo').focus({ preventScroll: true });
   }
 
   async function leaveGun(to) {
@@ -562,10 +579,13 @@
   /* ---------- Ereignisse ---------- */
 
   const acts = {
-    spin, rebet, restart,
+    rebet,
+    spin: () => (mp ? mp.ready() : spin()),
+    restart: () => (mp ? mp.again() : restart()),
+    friends: () => window.Friends.open(),
     undo: () => unplace(S.log.length - 1),
     clear: clearBets,
-    cashout() { S.balance += L.stake(S.bets); S.bets = {}; S.log = []; finish(); },
+    cashout() { if (mp) { mp.home(); return; } S.balance += L.stake(S.bets); S.bets = {}; S.log = []; finish(); },
     sound() { muted = !muted; store.set(MUTE, muted ? '1' : '0'); render(); if (!muted) sfx.chip(); },
   };
   document.addEventListener('click', (e) => {
@@ -600,10 +620,30 @@
   render();
   requestAnimationFrame(() => requestAnimationFrame(() => $('stage').classList.remove('snap')));
 
-  if (S.phase === 'intro') {
-    $('intro').addEventListener('close', () => { S.phase = 'table'; save(); audio(); });
+  // Was mp.js vom Tisch braucht.
+  window.Game = {
+    L, $, fmt, sfx, wait, say, render, setPhase, park, gunView, cylAnim, pullAnim, callSpin, callResult, clearCall, audio, WORDS,
+    get S() { return S; },
+    set busy(v) { busy = v; },
+    set shown(v) { shown = v; },
+    paint(mode) { cylMode = mode; paintChambers(); },
+    enter(hooks) {
+      mp = hooks; S = { ...fresh(), phase: 'table' }; shown = null; busy = true;
+      if ($('intro')) $('intro').close(); $('end').hidden = true; document.querySelector('main').inert = false;
+      setPhase('table'); clearCall();
+    },
+  };
+
+  if (S.phase === 'intro' && window.Friends.invited()) { S.phase = 'table'; save(); }
+  else if (S.phase === 'intro') {
+    $('intro').addEventListener('close', () => {
+      if (mp) return;
+      S.phase = 'table'; save(); audio();
+      if ($('intro').returnValue === 'friends') window.Friends.open();
+    });
     $('intro').showModal();
   } else if (S.phase === 'dead' || S.phase === 'gone') showEnd(false);
   else if (S.phase === 'gun') gunScreen();
   else if (S.balance === 0 && !Object.keys(S.bets).length) enterGun();
+  window.Friends.start();
 })();

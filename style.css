@@ -179,6 +179,7 @@ dialog .small { font-size: 1.05rem; margin-bottom: 1.5rem; }
   .layout { grid-template-columns: 1fr 1fr repeat(3, 1.35fr); grid-template-rows: none; grid-auto-rows: minmax(30px, 3.5svh); flex: 1; }
   .cell { grid-column: var(--pc) / span var(--pcs, 1); grid-row: var(--pr) / span var(--prs, 1); font-size: 1.15rem; }
   .cell.out { font-size: .94rem; }
+  .cell[data-key^='d'] { padding: 0 6px; }
   .cell.zero { border-radius: 999px 999px 0 0; }
   .bet { width: 1.8rem; font-size: .8rem; border-width: 2px; }
   .actions { position: sticky; bottom: 0; gap: .5rem; background: var(--felt); padding: .5rem 0 calc(.25rem + env(safe-area-inset-bottom)); transition: background-color .9s; z-index: 3; }
@@ -217,4 +218,61 @@ dialog .small { font-size: 1.05rem; margin-bottom: 1.5rem; }
 @media (prefers-reduced-motion: reduce) {
   .stage, .layer, .gun, .end-inner, body { transition-duration: .01s !important; animation: none !important; }
   .end.flash { animation: none; }
+}
+
+/* ---------- Gemeinsamer Tisch ---------- */
+.party { display: grid; gap: .35rem; min-width: 0; }
+.room { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .6rem; }
+.room strong { font-weight: 850; letter-spacing: .08em; }
+.room .quiet { padding-block: .15em; }
+.players { list-style: none; margin: 0; padding: 2px; display: flex; flex-wrap: wrap; gap: .35rem 1.1rem; }
+.players li { display: flex; align-items: center; gap: .4rem; white-space: nowrap; }
+.players li.off { opacity: .5; }
+.players .sum { font-weight: 800; }
+.mark {
+  width: 1.5em; height: 1.5em; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--p); color: var(--pt); font-weight: 850; font-size: .95em; line-height: 1; box-shadow: 0 0 0 2px var(--bone);
+}
+.players li.ready .mark { box-shadow: 0 0 0 2px var(--bone), 0 0 0 5px var(--ink); }
+.others { position: absolute; left: 3px; top: 3px; right: 3px; display: flex; flex-wrap: wrap; gap: 1px 3px; pointer-events: none; }
+.others .mark { font-size: clamp(.6rem, .9vw, .8rem); box-shadow: 0 0 0 1.5px var(--bone); }
+.seats { list-style: none; margin: 0; display: grid; gap: .4rem; justify-items: start; }
+.seats li { display: flex; align-items: center; gap: .5rem; padding: .2rem .8rem .2rem .3rem; border-radius: 999px; font-size: 1.15rem; }
+.seats li.holds { background: var(--ink); color: var(--bone); }
+.seats .sum { font-weight: 800; }
+.gun p.clock { min-height: 0; font-weight: 650; }
+.stage.handed { animation: hand 1s cubic-bezier(.6,0,.3,1); }
+@keyframes hand { 45% { transform: translateY(-110vh); opacity: 1; } 46% { transform: translateY(-110vh); opacity: 0; } 54% { transform: translateY(110vh); opacity: 0; } 55% { transform: translateY(110vh); opacity: 1; } }
+.ranking { list-style: none; margin: 0; display: grid; grid-template-columns: repeat(4, auto); align-items: center; justify-items: start; gap: .5rem .9rem; font-size: clamp(1.2rem, 2vw, 1.7rem); }
+.ranking li { display: contents; }
+.ranking .sum { font-family: var(--display); }
+.flashbang { position: fixed; inset: 0; z-index: 9; background: #000; pointer-events: none; animation: bang 1.6s ease forwards; }
+@keyframes bang { 0% { background: #fff; } 6% { background: #000; } 35% { opacity: 1; } 100% { opacity: 0; } }
+
+#lobby label { display: grid; gap: .2rem; font-weight: 650; }
+#lobby input { font: inherit; font-size: 1.25rem; color: inherit; width: 100%; padding: .45em .6em; border: 2px solid var(--ink); border-radius: 0; background: #fff; }
+#lobby input:focus-visible { outline: 3px solid var(--red); outline-offset: 1px; }
+#joinCode { text-transform: uppercase; letter-spacing: .12em; }
+.lobby-ways { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: .9rem; margin-top: 1rem; }
+#openTable { grid-column: 1 / -1; justify-self: start; }
+.problem { color: var(--red); font-weight: 650; min-height: 1.4em; margin: .6rem 0 .2rem; }
+#lobby .quiet { padding-left: 0; }
+#lobby .small { margin: .75rem 0 0; }
+
+@media (max-aspect-ratio: 1/1) {
+  .tools { gap: .2rem; }
+  .party { grid-column: 1 / -1; }
+  .players { flex-wrap: nowrap; overflow-x: auto; }
+  .seats { display: flex; flex-wrap: wrap; gap: .3rem .5rem; }
+  .seats li { font-size: 1rem; }
+  .gun:has(.seats:not([hidden])) p#gunText { min-height: 0; }
+}
+@media (min-aspect-ratio: 1/1) and (max-height: 560px) {
+  .party { grid-column: 1 / -1; display: flex; gap: 1rem; }
+  .room, .players { flex-wrap: nowrap; white-space: nowrap; }
+  .players { overflow-x: auto; min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage.handed { animation: none; }
+  .flashbang { display: none; }
 }

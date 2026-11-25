@@ -26,6 +26,7 @@
         <h1>Spielsucht</h1>
         <div class="tools">
           <button type="button" class="quiet" data-act="sound" id="sound">Ton aus</button>
+          <button type="button" class="quiet" data-act="friends" id="friendsBtn">Mit Freunden</button>
           <button type="button" class="quiet" data-act="cashout">Nach Hause gehen</button>
         </div>
       </header>
@@ -34,6 +35,10 @@
         <p class="balance"><span id="balance">1.000</span> Mark</p>
         <p class="message" id="message" role="status" aria-live="polite">Bitte das Spiel zu machen.</p>
         <ol class="history" id="history" aria-label="Letzte Zahlen"></ol>
+        <div class="party" id="party" hidden>
+          <p class="room">Tisch <strong id="code"></strong> <button type="button" class="quiet" id="copy">Link kopieren</button> <button type="button" class="quiet" id="leave">Verlassen</button></p>
+          <ul class="players" id="players" aria-label="Am Tisch"></ul>
+        </div>
       </div>
 
       <div class="layout" id="layout" role="group" aria-label="Setzfelder"></div>
@@ -44,7 +49,7 @@
           <button type="button" class="quiet" data-act="undo">Rückgängig</button>
           <button type="button" class="quiet" data-act="clear">Abräumen</button>
           <button type="button" class="quiet" data-act="rebet">Wie eben</button>
-          <button type="button" class="main" data-act="spin">Drehen</button>
+          <button type="button" class="main" data-act="spin" id="spin">Drehen</button>
         </div>
       </div>
     </section>
@@ -52,10 +57,12 @@
     <section class="gun" id="gun" aria-label="Russisches Roulette" hidden>
       <h2 id="gunTitle"></h2>
       <p id="gunText" role="status" aria-live="polite"></p>
+      <ol class="seats" id="seats" aria-label="Am Revolver" hidden></ol>
       <div class="gun-actions">
         <button type="button" class="main" id="gunGo"></button>
         <button type="button" class="quiet" id="gunLeave"></button>
       </div>
+      <p class="clock" id="gunClock" hidden></p>
     </section>
   </main>
 
@@ -64,7 +71,9 @@
       <h2 id="endTitle" tabindex="-1"></h2>
       <p id="endText"></p>
       <p id="endBest"></p>
-      <button type="button" class="main" data-act="restart">Neues Spiel</button>
+      <ol class="ranking" id="ranking" hidden></ol>
+      <button type="button" class="main" data-act="restart" id="restart">Neues Spiel</button>
+      <button type="button" class="quiet" id="endLeave" hidden>Tisch verlassen</button>
       <p class="help">Hier war alles nur Spielgeld. Wenn es bei dir gerade nicht nur ein Spiel ist:<br>
         Glücksspielsucht: <a href="tel:08001372700">0800 137 27 00</a> oder <a href="https://www.check-dein-spiel.de" rel="noopener">check-dein-spiel.de</a><br>
         TelefonSeelsorge, rund um die Uhr: <a href="tel:116123">116 123</a></p>
@@ -76,11 +85,29 @@
     <p>Du hast 1.000 Mark Spielgeld. Ist alles weg, kommt der Revolver auf den Tisch.</p>
     <p>Du kannst jederzeit nach Hause gehen. Das Geld, das du dann hast, zählt.</p>
     <p class="small">Das Spiel zeigt russisches Roulette, ohne Blut. Kein echtes Geld. Ab 18.</p>
-    <form method="dialog"><button class="main" autofocus>An den Tisch</button></form>
+    <form method="dialog"><button class="main" autofocus value="solo">Allein spielen</button> <button class="quiet" value="friends">Mit Freunden</button></form>
+  </dialog>
+
+  <dialog id="lobby" aria-labelledby="lobbyTitle">
+    <h2 id="lobbyTitle">Mit Freunden</h2>
+    <p>Alle setzen am selben Kessel. Wer pleite ist, sitzt am Revolver und gibt ihn weiter, bis es knallt. Wer am Ende das meiste Geld hat, gewinnt.</p>
+    <form id="lobbyForm" autocomplete="off">
+      <label>Dein Name <input id="nick" maxlength="14" required></label>
+      <div class="lobby-ways">
+        <button type="submit" class="main" id="openTable" value="open">Tisch eröffnen</button>
+        <label>Code <input id="joinCode" maxlength="6" autocapitalize="characters" spellcheck="false"></label>
+        <button type="submit" class="main" id="joinTable" value="join">Beitreten</button>
+      </div>
+      <p class="problem" id="lobbyMsg" role="alert"></p>
+      <button type="button" class="quiet" id="lobbyClose">Doch allein spielen</button>
+    </form>
+    <p class="small">Die Browser verbinden sich direkt. Dabei können Mitspieler technisch deine IP-Adresse sehen; den Kontakt vermittelt der Dienst PeerJS.</p>
   </dialog>
 
   <noscript>Das Spiel braucht JavaScript.</noscript>
   <script src="logic.js"></script>
+  <script src="room.js"></script>
+  <script src="mp.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
