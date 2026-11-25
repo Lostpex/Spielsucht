@@ -198,6 +198,7 @@
     G.gunView('Der Tisch ist zu', 'Der Gastgeber ist weg oder die Verbindung kam nicht zurück.', ['Tisch verlassen', leave], null);
     $('seats').hidden = true;
     G.setPhase('gun');
+    G.render();
     $('end').hidden = true;
     document.querySelector('main').inert = false;
     leaving = true;
@@ -315,7 +316,13 @@
     // 'state' und 'sync': ganzer Stand
     V = view;
     setClock(view.left);
-    if (view.phase === 'end') { await toTable(); ranking(); return; }
+    if (view.phase === 'end') {
+      // Der Filz hinter der Rangliste zeigt, was mir bleibt.
+      S.balance = worth(mine()); S.bets = {}; S.log = [];
+      G.busy = true;
+      await toTable(); G.render(); ranking();
+      return;
+    }
     if ($('end').hidden === false) { $('end').hidden = true; document.querySelector('main').inert = false; }
     if (view.phase === 'gun' || view.phase === 'reveal') {
       if (!view.gun) return;
@@ -372,7 +379,9 @@
     else if (p.status !== 'in') G.say(p.status === 'home' ? 'Du bist zu Hause und schaust zu.' : 'Du bist raus und schaust zu.');
     else if (p.ready) G.say(open.length ? `Warten auf ${list(open)}.` : 'Alle sind bereit.');
     else if (fresh) G.say('Bitte das Spiel zu machen.');
-    if (clockEnd && !p.ready && p.status === 'in') G.say('Die anderen sind bereit. Setz, sonst läuft die Runde ohne dich.');
+    if (clockEnd && !p.ready && p.status === 'in') {
+      G.say(Object.keys(G.S.bets).length ? 'Die Zeit läuft. Dein Einsatz gilt, drück „Bereit“.' : 'Die Zeit läuft. Setz, sonst dreht der Kessel ohne dich.');
+    }
   }
 
   function mark(p) {
@@ -444,7 +453,7 @@
     const p = who(g.holder);
     const at = g.seats.indexOf(s);
     const next = g.seats.length > 1 ? who(g.seats[(at + 1) % g.seats.length].id) : null;
-    const odds = `${g.bullets} von ${L.CHAMBERS - g.fired}`;
+    const odds = `${g.bullets}\u00a0von\u00a0${L.CHAMBERS - g.fired}`;
     const now = G.fmt(L.pot(g.bullets, s.pulls));
     const more = G.fmt(L.pot(g.bullets, s.pulls + 1));
     const act = (t) => () => { send({ t }); $('gunGo').disabled = $('gunLeave').disabled = true; };

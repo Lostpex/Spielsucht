@@ -226,7 +226,7 @@ dialog .small { font-size: 1.05rem; margin-bottom: 1.5rem; }
 .room strong { font-weight: 850; letter-spacing: .08em; }
 .room .quiet { padding-block: .15em; }
 .players { list-style: none; margin: 0; padding: 2px; display: flex; flex-wrap: wrap; gap: .35rem 1.1rem; }
-.players li { display: flex; align-items: center; gap: .4rem; white-space: nowrap; }
+.players li { display: flex; align-items: center; gap: .55rem; white-space: nowrap; }
 .players li.off { opacity: .5; }
 .players .sum { font-weight: 800; }
 .mark {

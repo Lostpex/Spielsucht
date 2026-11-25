@@ -425,7 +425,7 @@
   function gunScreen() {
     busy = false;
     const b = bullets();
-    const odds = `${b} von ${L.CHAMBERS - S.fired}`;
+    const odds = `${b}\u00a0von\u00a0${L.CHAMBERS - S.fired}`;
     const next = fmt(L.pot(b, S.fired + 1));
     const quit = ['Aufhören und gehen', () => leaveGun('gone')];
     if (!S.chambers) {
